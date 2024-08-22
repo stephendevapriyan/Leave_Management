@@ -2,6 +2,7 @@ package com.example.LeaveManagementSystem.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
@@ -9,12 +10,12 @@ import java.util.Date;
 import java.util.UUID;
 
 @Entity
-@Table(name="employees")
+@Table(name = "employees")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class EmployeeEntity {
-
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -41,12 +42,12 @@ public class EmployeeEntity {
     @Column(nullable = false)
     private String jobTitle;
 
-    @ManyToOne
+    @ManyToOne(cascade = CascadeType.REMOVE)
     @JoinColumn(name = "organization_id", nullable = true)
     private OrganizationEntity organization;
 
     @Column(nullable = false)
-    private boolean isActive=true;
+    private boolean isActive = true;
 
     @Column(nullable = false)
     private boolean isDelete;
