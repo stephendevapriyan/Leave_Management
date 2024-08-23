@@ -1,5 +1,7 @@
 package com.example.LeaveManagementSystem.service;
 
+import com.example.LeaveManagementSystem.dto.EmployeeResponseDTO;
+import com.example.LeaveManagementSystem.dto.LeaveResponseDTO;
 import com.example.LeaveManagementSystem.entity.EmployeeEntity;
 import com.example.LeaveManagementSystem.entity.LeaveEntity;
 import com.example.LeaveManagementSystem.entity.OrganizationEntity;
@@ -13,10 +15,10 @@ public interface LeaveService {
     public ApiResponse<OrganizationEntity> saveOrganization(OrganizationEntity oentity);
     public boolean organizationEmailExists(String email);
     public boolean checkLocation(String location);
-    public ApiResponse<EmployeeEntity> saveEmployee(EmployeeEntity entity);
+    public ApiResponse<EmployeeResponseDTO> saveEmployee(EmployeeEntity entity);
     public boolean isEmailExists(String email);
     public boolean isOrganizationExists(UUID id);
-    public ApiResponse<LeaveEntity> applyLeave(LeaveEntity entity);
+    public ApiResponse<LeaveResponseDTO> applyLeave(LeaveEntity entity);
     public boolean isEmployeeExists(UUID id);
 
     ResponseEntity<ApiResponse<OrganizationEntity>> deleteOrganizationID(UUID id);

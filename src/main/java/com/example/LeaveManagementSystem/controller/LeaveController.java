@@ -1,5 +1,7 @@
 package com.example.LeaveManagementSystem.controller;
 
+import com.example.LeaveManagementSystem.dto.EmployeeResponseDTO;
+import com.example.LeaveManagementSystem.dto.LeaveResponseDTO;
 import com.example.LeaveManagementSystem.entity.EmployeeEntity;
 import com.example.LeaveManagementSystem.entity.LeaveEntity;
 import com.example.LeaveManagementSystem.entity.OrganizationEntity;
@@ -25,14 +27,14 @@ public class LeaveController {
     }
 
     @PostMapping("/employee")
-    public ResponseEntity<ApiResponse<EmployeeEntity>> addEmployee(@RequestBody EmployeeEntity entity){
-       ApiResponse<EmployeeEntity> response= service.saveEmployee(entity);
+    public ResponseEntity<ApiResponse<EmployeeResponseDTO>> addEmployee(@RequestBody EmployeeEntity entity){
+       ApiResponse<EmployeeResponseDTO> response= service.saveEmployee(entity);
         return new ResponseEntity<>(response,  HttpStatus.valueOf(response.getStatus()));
     }
 
     @PostMapping("/leave")
-   public ResponseEntity<ApiResponse<LeaveEntity>> leaveApply(@RequestBody LeaveEntity entity){
-      ApiResponse<LeaveEntity>response= service.applyLeave(entity);
+   public ResponseEntity<ApiResponse<LeaveResponseDTO>> leaveApply(@RequestBody LeaveEntity entity){
+      ApiResponse<LeaveResponseDTO>response= service.applyLeave(entity);
         return new ResponseEntity<>(response,  HttpStatus.valueOf(response.getStatus()));
     }
 

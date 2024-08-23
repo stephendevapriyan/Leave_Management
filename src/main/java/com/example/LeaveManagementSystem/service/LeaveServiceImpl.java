@@ -1,5 +1,7 @@
 package com.example.LeaveManagementSystem.service;
 
+import com.example.LeaveManagementSystem.dto.EmployeeResponseDTO;
+import com.example.LeaveManagementSystem.dto.LeaveResponseDTO;
 import com.example.LeaveManagementSystem.entity.EmployeeEntity;
 import com.example.LeaveManagementSystem.entity.LeaveEntity;
 import com.example.LeaveManagementSystem.entity.OrganizationEntity;
@@ -80,12 +82,12 @@ public class LeaveServiceImpl implements LeaveService {
 
     // save employee
     @Override
-    public ApiResponse<EmployeeEntity> saveEmployee(EmployeeEntity entity) {
+    public ApiResponse<EmployeeResponseDTO> saveEmployee(EmployeeEntity entity) {
         log.info("saving employee method started");
         try {
             if (isEmailExists(entity.getEmail())) {
                 log.warn("Email id already exists");
-                return ApiResponse.<EmployeeEntity>builder()
+                return ApiResponse.<EmployeeResponseDTO>builder()
                         .message("Email id already exists")
                         .status(HttpStatus.BAD_REQUEST.value())
                         .data(null)
@@ -93,7 +95,7 @@ public class LeaveServiceImpl implements LeaveService {
             }
             if (entity.getOrganization() == null || !isOrganizationExists(entity.getOrganization().getId())) {
                 log.warn("Invalid organization");
-                return ApiResponse.<EmployeeEntity>builder()
+                return ApiResponse.<EmployeeResponseDTO>builder()
                         .message("Invalid organization")
                         .status(HttpStatus.BAD_REQUEST.value())
                         .data(null)
@@ -101,15 +103,32 @@ public class LeaveServiceImpl implements LeaveService {
             }
             EmployeeEntity savedEntity = erepository.save(entity);
             log.info("Successfully saved employee");
-            return ApiResponse.<EmployeeEntity>builder()
+
+            EmployeeResponseDTO dto=new EmployeeResponseDTO();
+
+            dto.setId(entity.getId());
+            dto.setFirstname(entity.getFirstname());
+            dto.setLastname(entity.getLastname());
+            dto.setEmail(entity.getEmail());
+            dto.setRole(entity.getRole());
+            dto.setPhoneNumber(entity.getPhoneNumber());
+            dto.setHireDate(entity.getHireDate());
+            dto.setJobTitle(entity.getJobTitle());
+            dto.setOrganizationId(entity.getOrganization().getId());
+            dto.setActive(entity.isActive());
+            dto.setCreatedAt(entity.getCreatedAt());
+            dto.setUpdatedAt(entity.getUpdatedAt());
+
+            return ApiResponse.<EmployeeResponseDTO>builder()
                     .status(HttpStatus.OK.value())
                     .message("Successfully saved")
-                    .data(savedEntity)
+                    .data(dto)
                     .build();
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             log.error(e.getMessage());
             log.error("invalid input please check");
-            return ApiResponse.<EmployeeEntity>builder()
+            return ApiResponse.<EmployeeResponseDTO>builder()
                     .status(HttpStatus.BAD_REQUEST.value())
                     .message("invalid input please check")
                     .data(null)
@@ -140,12 +159,12 @@ public class LeaveServiceImpl implements LeaveService {
     // apply leave
 
     @Override
-    public ApiResponse<LeaveEntity> applyLeave(LeaveEntity entity) {
+    public ApiResponse<LeaveResponseDTO> applyLeave(LeaveEntity entity) {
         log.info("apply leave method started");
         try {
             if (!isEmployeeExists(entity.getEmployee().getId())) {
                 log.warn("invalid employee id");
-                return ApiResponse.<LeaveEntity>builder()
+                return ApiResponse.<LeaveResponseDTO>builder()
                         .status(HttpStatus.BAD_REQUEST.value())
                         .message("invalid employee id")
                         .data(null)
@@ -153,14 +172,27 @@ public class LeaveServiceImpl implements LeaveService {
             }
             LeaveEntity saved = leaverepo.save(entity);
             log.info("succesfully applied leave");
-            return ApiResponse.<LeaveEntity>builder()
+
+            LeaveResponseDTO dto=new LeaveResponseDTO();
+            dto.setId(entity.getId());
+            dto.setEmployeeId(entity.getEmployee().getId());
+            dto.setStartDate(entity.getStartDate());
+            dto.setEndDate(entity.getEndDate());
+            dto.setLeaveType(entity.getLeaveType());
+            dto.setStatus(entity.getStatus());
+            dto.setRequestDate(entity.getRequestDate());
+            dto.setLeaveReason(entity.getLeaveReason());
+            dto.setApprovedDate(entity.getApprovedDate());
+            dto.setCreatedAt(entity.getCreatedAt());
+            dto.setUpdatedAt(entity.getUpdatedAt());
+            return ApiResponse.<LeaveResponseDTO>builder()
                     .status(HttpStatus.OK.value())
                     .message("succesfully applied leave")
-                    .data(saved)
+                    .data(dto)
                     .build();
         } catch (Exception e) {
             log.error("invalid input please check");
-            return ApiResponse.<LeaveEntity>builder()
+            return ApiResponse.<LeaveResponseDTO>builder()
                     .status(HttpStatus.BAD_REQUEST.value())
                     .message("invalid input please check")
                     .data(null)
