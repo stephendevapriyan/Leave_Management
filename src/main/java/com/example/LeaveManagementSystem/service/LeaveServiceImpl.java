@@ -2,13 +2,22 @@ package com.example.LeaveManagementSystem.service;
 
 import com.example.LeaveManagementSystem.dto.EmployeeResponseDTO;
 import com.example.LeaveManagementSystem.dto.LeaveResponseDTO;
+import com.example.LeaveManagementSystem.entity.AcceptLeaveEntity;
 import com.example.LeaveManagementSystem.entity.EmployeeEntity;
 import com.example.LeaveManagementSystem.entity.LeaveEntity;
+import com.example.LeaveManagementSystem.entity.LeaveStatus;
 import com.example.LeaveManagementSystem.entity.OrganizationEntity;
+import com.example.LeaveManagementSystem.entity.RejectLeaveEntity;
+import com.example.LeaveManagementSystem.exceptions.UserNotFoundException;
+import com.example.LeaveManagementSystem.repository.AcceptLeaveEntityRepo;
 import com.example.LeaveManagementSystem.repository.EmployeeRepo;
 import com.example.LeaveManagementSystem.repository.LeaveRepo;
 import com.example.LeaveManagementSystem.repository.OrganizationRepo;
+import com.example.LeaveManagementSystem.repository.RejectLeaveEntityRepo;
 import com.example.LeaveManagementSystem.response.ApiResponse;
+import com.example.LeaveManagementSystem.utils.ErrorUtil;
+
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -16,6 +25,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -29,6 +39,10 @@ public class LeaveServiceImpl implements LeaveService {
     private EmployeeRepo erepository;
     @Autowired
     private LeaveRepo leaverepo;
+    @Autowired
+    private AcceptLeaveEntityRepo acceptLeaveEntityRepo;
+    @Autowired
+    private RejectLeaveEntityRepo rejectLeaveEntityRepo;
 
     // save organization
     @Override
@@ -104,7 +118,7 @@ public class LeaveServiceImpl implements LeaveService {
             EmployeeEntity savedEntity = erepository.save(entity);
             log.info("Successfully saved employee");
 
-            EmployeeResponseDTO dto=new EmployeeResponseDTO();
+            EmployeeResponseDTO dto = new EmployeeResponseDTO();
 
             dto.setId(entity.getId());
             dto.setFirstname(entity.getFirstname());
@@ -124,8 +138,7 @@ public class LeaveServiceImpl implements LeaveService {
                     .message("Successfully saved")
                     .data(dto)
                     .build();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error(e.getMessage());
             log.error("invalid input please check");
             return ApiResponse.<EmployeeResponseDTO>builder()
@@ -173,7 +186,7 @@ public class LeaveServiceImpl implements LeaveService {
             LeaveEntity saved = leaverepo.save(entity);
             log.info("succesfully applied leave");
 
-            LeaveResponseDTO dto=new LeaveResponseDTO();
+            LeaveResponseDTO dto = new LeaveResponseDTO();
             dto.setId(entity.getId());
             dto.setEmployeeId(entity.getEmployee().getId());
             dto.setStartDate(entity.getStartDate());
@@ -191,6 +204,7 @@ public class LeaveServiceImpl implements LeaveService {
                     .data(dto)
                     .build();
         } catch (Exception e) {
+            log.error(e.getMessage());
             log.error("invalid input please check");
             return ApiResponse.<LeaveResponseDTO>builder()
                     .status(HttpStatus.BAD_REQUEST.value())
@@ -211,9 +225,7 @@ public class LeaveServiceImpl implements LeaveService {
         return false;
     }
 
-
-
-//stephenDevepriyan
+    // stephenDevepriyan
 
     public ResponseEntity<ApiResponse<OrganizationEntity>> deleteOrganizationID(UUID id) {
         log.info("Attempting to delete organization with ID: {}", id);
@@ -281,6 +293,7 @@ public class LeaveServiceImpl implements LeaveService {
             return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
     public ResponseEntity<ApiResponse<EmployeeEntity>> deleteEmployeeById(UUID id) {
         log.info("Attempting to delete employee with ID: {}", id);
 
@@ -351,7 +364,7 @@ public class LeaveServiceImpl implements LeaveService {
             log.error("Exception occurred while deleting employee with ID {}: {}", id, e.getMessage(), e);
             ApiResponse<EmployeeEntity> response = ApiResponse.<EmployeeEntity>builder()
                     .message("An unexpected error occurred while processing the request.")
-                    .status( HttpStatus.INTERNAL_SERVER_ERROR.value())
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
                     .data(null)
                     .build();
             return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -397,7 +410,7 @@ public class LeaveServiceImpl implements LeaveService {
                 log.warn(errorMessage);
                 ApiResponse<LeaveEntity> response = ApiResponse.<LeaveEntity>builder()
                         .message(errorMessage)
-                        .status( HttpStatus.CONFLICT.value())
+                        .status(HttpStatus.CONFLICT.value())
                         .data(null)
                         .build();
                 return new ResponseEntity<>(response, HttpStatus.CONFLICT);
@@ -412,7 +425,7 @@ public class LeaveServiceImpl implements LeaveService {
 
             ApiResponse<LeaveEntity> response = ApiResponse.<LeaveEntity>builder()
                     .message("Leave successfully marked as deleted")
-                    .status( HttpStatus.OK.value())
+                    .status(HttpStatus.OK.value())
                     .data(leaveEntity)
                     .build();
 
@@ -430,8 +443,64 @@ public class LeaveServiceImpl implements LeaveService {
         }
     }
 
+    @SneakyThrows
+    public boolean hasEnoughLeaves(UUID id, int requiredDays) {
+        Optional<EmployeeEntity> employee = erepository.findById(id);
+        if (employee.isEmpty())
+            throw new UserNotFoundException();
+
+        if (employee.get().getLeaveCount() < requiredDays) {
+            return false;
+        }
+        return true;
+    }
+
+    public ErrorUtil<String> acceptLeave(AcceptLeaveEntity entity) {
+        if (!isEmployeeExists(entity.getReviewedBy().getId())) {
+            return new ErrorUtil<>(false, "Not a valid reviewer");
+        }
+
+        var leave = leaverepo.findById(entity.getLeaveRequest().getId());
+        if (leave.isEmpty()) {
+            return new ErrorUtil<>(false, "Not a valid leave ID");
+        }
+
+        int requiredDays = (int) leave.get().getStartDate().until(
+                leave.get().getEndDate(),
+                ChronoUnit.DAYS);
+
+        if (!hasEnoughLeaves(leave.get().getEmployee().getId(), requiredDays)) {
+            return new ErrorUtil<>(false, "Employees does not have enough leave");
+        }
+
+        if (rejectLeaveEntityRepo.findById(entity.getLeaveRequest().getId()).isPresent()) {
+            entity.setStatus(LeaveStatus.APPROVED);
+        } else {
+            entity.setStatus(LeaveStatus.REAPPROVED);
+        }
+        acceptLeaveEntityRepo.save(entity);
+
+        EmployeeEntity employee = leave.get().getEmployee();
+        employee.setLeaveCount(employee.getLeaveCount() - requiredDays);
+        erepository.save(employee);
+
+        return new ErrorUtil<>(true, "leave accepted succesfully");
+    }
+
+    @Override
+    public ErrorUtil<String> rejectLeave(RejectLeaveEntity entity) {
+        if (!isEmployeeExists(entity.getReviewedBy().getId())) {
+            return new ErrorUtil<>(false, "Not a valid reviewer");
+        }
+
+        var leave = leaverepo.findById(entity.getLeaveRequest().getId());
+        if (leave.isEmpty()) {
+            return new ErrorUtil<>(false, "Not a valid leave ID");
+        }
+
+        entity.setStatus(LeaveStatus.REJECTED);
+        rejectLeaveEntityRepo.save(entity);
+
+        return new ErrorUtil<String>(true, "leave rejected successfully");
+    }
 }
-
-
-
-

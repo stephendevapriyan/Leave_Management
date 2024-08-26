@@ -5,9 +5,12 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Date;
+import java.util.List;
 import java.util.UUID;
+
+import org.springframework.format.annotation.DateTimeFormat;
 
 @Entity
 @Table(name = "leave")
@@ -25,10 +28,12 @@ public class LeaveEntity {
     private EmployeeEntity employee;
 
     @Column
-    private Date startDate;
+    @DateTimeFormat(pattern = "yyyy-mm-dd")
+    private LocalDate startDate;
 
     @Column
-    private Date endDate;
+    @DateTimeFormat(pattern = "yyyy-mm-dd")
+    private LocalDate endDate;
 
     @Column(nullable = false)
     private String leaveType;
@@ -44,6 +49,9 @@ public class LeaveEntity {
 
     @Column(nullable = false)
     private boolean isDelete;
+
+    @OneToMany
+    private List<AcceptLeaveEntity> acceptedLeaves;
 
     @Column
     private LocalDateTime approvedDate;
