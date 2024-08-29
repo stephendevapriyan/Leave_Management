@@ -51,9 +51,9 @@ public class LeaveServiceImpl implements LeaveService {
                     .data(savedEntity)
                     .build();
         } catch (Exception e) {
-            log.error("invalid input please check");
+            log.error("invalid input please check" +e.getMessage());
             return ApiResponse.<OrganizationEntity>builder()
-                    .message("invalid input please check")
+                    .message("invalid input please check" +e.getMessage())
                     .status(HttpStatus.BAD_REQUEST.value())
                     .data(null)
                     .build();
