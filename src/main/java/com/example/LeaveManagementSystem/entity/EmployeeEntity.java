@@ -57,4 +57,5 @@ public class EmployeeEntity {
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;
 
+    private Integer leaveCount;
 }
