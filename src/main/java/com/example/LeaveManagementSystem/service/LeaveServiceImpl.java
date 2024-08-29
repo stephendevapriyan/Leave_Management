@@ -17,6 +17,8 @@ import com.example.LeaveManagementSystem.repository.RejectLeaveEntityRepo;
 import com.example.LeaveManagementSystem.response.ApiResponse;
 import com.example.LeaveManagementSystem.utils.ErrorUtil;
 
+import com.example.LeaveManagementSystem.validation.EmailValidation;
+import com.example.LeaveManagementSystem.validation.MobileNoValidation;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +45,10 @@ public class LeaveServiceImpl implements LeaveService {
     private AcceptLeaveEntityRepo acceptLeaveEntityRepo;
     @Autowired
     private RejectLeaveEntityRepo rejectLeaveEntityRepo;
+    @Autowired
+    private EmailValidation emailValidation;
+    @Autowired
+    private MobileNoValidation mobileNoValidation;
 
     // save organization
     @Override
@@ -57,6 +63,23 @@ public class LeaveServiceImpl implements LeaveService {
                         .data(null)
                         .build();
             }
+            if(!emailValidation.isEmailValid(oentity.getEmail())){
+                log.warn("invalid email id ");
+                return ApiResponse.<OrganizationEntity>builder()
+                        .message("invalid email id please check")
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .data(null)
+                        .build();
+            }
+            if(!mobileNoValidation.isNumberValid(oentity.getContactNumber())){
+                log.warn("invalid mobile no");
+                return ApiResponse.<OrganizationEntity>builder()
+                        .message("invalid mobile no please check")
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .data(null)
+                        .build();
+            }
+
             OrganizationEntity savedEntity = orepo.save(oentity);
             log.info("successfully saved organization");
             return ApiResponse.<OrganizationEntity>builder()
@@ -111,6 +134,22 @@ public class LeaveServiceImpl implements LeaveService {
                 log.warn("Invalid organization");
                 return ApiResponse.<EmployeeResponseDTO>builder()
                         .message("Invalid organization")
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .data(null)
+                        .build();
+            }
+            if(!emailValidation.isEmailValid(entity.getEmail())){
+                log.warn("invalid email id ");
+                return ApiResponse.<EmployeeResponseDTO>builder()
+                        .message("invalid email id please check")
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .data(null)
+                        .build();
+            }
+            if(!mobileNoValidation.isNumberValid(entity.getPhoneNumber())){
+                log.warn("invalid mobile no ");
+                return ApiResponse.<EmployeeResponseDTO>builder()
+                        .message("invalid mobile no")
                         .status(HttpStatus.BAD_REQUEST.value())
                         .data(null)
                         .build();
