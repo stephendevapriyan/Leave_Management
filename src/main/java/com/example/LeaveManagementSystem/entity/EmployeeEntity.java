@@ -56,6 +56,7 @@ public class EmployeeEntity {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;
-
     private Integer leaveCount;
+    private String password;
+    private String encryptedPassword;
 }

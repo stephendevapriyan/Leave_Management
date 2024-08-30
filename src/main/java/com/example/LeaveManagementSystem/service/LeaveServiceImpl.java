@@ -24,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -49,6 +50,8 @@ public class LeaveServiceImpl implements LeaveService {
     private EmailValidation emailValidation;
     @Autowired
     private MobileNoValidation mobileNoValidation;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     // save organization
     @Override
@@ -154,6 +157,8 @@ public class LeaveServiceImpl implements LeaveService {
                         .data(null)
                         .build();
             }
+            String password = passwordEncoder.encode(entity.getPassword());
+            entity.setEncryptedPassword(password);
             EmployeeEntity savedEntity = erepository.save(entity);
             log.info("Successfully saved employee");
 

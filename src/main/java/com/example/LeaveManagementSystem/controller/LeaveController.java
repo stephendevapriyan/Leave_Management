@@ -8,6 +8,7 @@ import com.example.LeaveManagementSystem.entity.LeaveEntity;
 import com.example.LeaveManagementSystem.entity.OrganizationEntity;
 import com.example.LeaveManagementSystem.entity.RejectLeaveEntity;
 import com.example.LeaveManagementSystem.response.ApiResponse;
+import com.example.LeaveManagementSystem.service.CustomUserDetailService;
 import com.example.LeaveManagementSystem.service.LeaveService;
 import com.example.LeaveManagementSystem.utils.ErrorUtil;
 
@@ -16,15 +17,25 @@ import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
 @RestController
+@RequestMapping("/api")
 public class LeaveController {
 
     @Autowired
     private LeaveService service;
+
+    @Autowired
+    private CustomUserDetailService userDetailService;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @PostMapping("/organization")
     public ResponseEntity<ApiResponse<OrganizationEntity>> addOrganization(@RequestBody OrganizationEntity entity) {
@@ -42,6 +53,26 @@ public class LeaveController {
     public ResponseEntity<ApiResponse<LeaveResponseDTO>> leaveApply(@RequestBody LeaveEntity entity) {
         ApiResponse<LeaveResponseDTO> response = service.applyLeave(entity);
         return new ResponseEntity<>(response, HttpStatus.valueOf(response.getStatus()));
+    }
+
+
+    @GetMapping("/login")
+    public ResponseEntity<String> login(@RequestParam String email, @RequestParam String password) {
+        try {
+
+            UserDetails userDetails = userDetailService.loadUserByUsername(email);
+            String userPassword=passwordEncoder.encode(password);
+
+            if (passwordEncoder.matches(password, userDetails.getPassword())) {
+
+                return ResponseEntity.status(HttpStatus.OK).body("Login successful");
+            }
+            else {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
+            }
+        } catch (UsernameNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+        }
     }
 
     @PostMapping("/accept-leave")
