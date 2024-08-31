@@ -49,13 +49,20 @@ public class LeaveEntity {
 
     @Column(nullable = false)
     private boolean isDelete;
-
-    @OneToMany
-    private List<AcceptLeaveEntity> acceptedLeaves;
+//
+//    @OneToMany
+//    private List<AcceptLeaveEntity> acceptedLeaves;
 
     @Column
     private LocalDateTime approvedDate;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;
+    private  String assigningEmail;
+
+
+
+
 }
+
+
