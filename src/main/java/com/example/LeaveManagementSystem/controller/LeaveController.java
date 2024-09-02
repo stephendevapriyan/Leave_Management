@@ -78,26 +78,26 @@ public class LeaveController {
 
     @PostMapping("/accept-leave")
     public ResponseEntity<?> acceptLeave(@RequestBody AcceptLeaveEntity acceptLeave) {
-        ErrorUtil<String> res = service.acceptLeave(acceptLeave);
+        ErrorUtil<String, String> res = service.acceptLeave(acceptLeave);
         if (!res.isOk()) {
             return new ResponseEntity<ApiResponse<?>>(
                     new ApiResponse<String>("error", HttpStatus.BAD_GATEWAY.value(), res.getMessage()),
                     HttpStatus.BAD_REQUEST);
         }
-        return new ResponseEntity<ApiResponse<?>>(new ApiResponse<String>("done", 200, res.getMessage()),
+        return new ResponseEntity<ApiResponse<?>>(new ApiResponse<String>("done", 200, res.getData()),
                 HttpStatus.OK);
     }
 
     @PostMapping("/reject-leave")
     @SneakyThrows
     public ResponseEntity<?> rejectLeave(@RequestBody RejectLeaveEntity rejectLeave) {
-        ErrorUtil<String> res = service.rejectLeave(rejectLeave);
+        ErrorUtil<String, String> res = service.rejectLeave(rejectLeave);
         if (!res.isOk()) {
             return new ResponseEntity<ApiResponse<?>>(
                     new ApiResponse<String>("error", HttpStatus.BAD_GATEWAY.value(), res.getMessage()),
                     HttpStatus.BAD_REQUEST);
         }
-        return new ResponseEntity<ApiResponse<?>>(new ApiResponse<String>("done", 200, res.getMessage()),
+        return new ResponseEntity<ApiResponse<?>>(new ApiResponse<String>("done", 200, res.getData()),
                 HttpStatus.OK);
     }
 

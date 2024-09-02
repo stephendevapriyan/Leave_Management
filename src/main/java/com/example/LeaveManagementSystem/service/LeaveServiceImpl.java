@@ -549,14 +549,14 @@ public class LeaveServiceImpl implements LeaveService {
         return true;
     }
 
-    public ErrorUtil<String> acceptLeave(AcceptLeaveEntity entity) {
+    public ErrorUtil<String, String> acceptLeave(AcceptLeaveEntity entity) {
         if (!isEmployeeExists(entity.getReviewedBy().getId())) {
-            return new ErrorUtil<>(false, "Not a valid reviewer");
+            return new ErrorUtil<>(false, "Not a valid reviewer", null);
         }
 
         var leave = leaverepo.findById(entity.getLeaveRequest().getId());
         if (leave.isEmpty()) {
-            return new ErrorUtil<>(false, "Not a valid leave ID");
+            return new ErrorUtil<>(false, "Not a valid leave ID", null);
         }
 
         int requiredDays = (int) leave.get().getStartDate().until(
@@ -564,7 +564,7 @@ public class LeaveServiceImpl implements LeaveService {
                 ChronoUnit.DAYS);
 
         if (!hasEnoughLeaves(leave.get().getEmployee().getId(), requiredDays)) {
-            return new ErrorUtil<>(false, "Employees does not have enough leave");
+            return new ErrorUtil<>(false, "Employees does not have enough leave", null);
         }
 
         if (rejectLeaveEntityRepo.findById(entity.getLeaveRequest().getId()).isPresent()) {
@@ -587,18 +587,18 @@ public class LeaveServiceImpl implements LeaveService {
         mailSender.send(acceptedMail);
         log.info("Leave acceptance email sent to {}", employeeEmail);
 
-        return new ErrorUtil<>(true, "leave accepted succesfully");
+        return new ErrorUtil<>(true, null, "leave accepted succesfully");
     }
 
     @Override
-    public ErrorUtil<String> rejectLeave(RejectLeaveEntity entity) {
+    public ErrorUtil<String, String> rejectLeave(RejectLeaveEntity entity) {
         if (!isEmployeeExists(entity.getReviewedBy().getId())) {
-            return new ErrorUtil<>(false, "Not a valid reviewer");
+            return new ErrorUtil<>(false, "Not a valid reviewer", null);
         }
 
         var leave = leaverepo.findById(entity.getLeaveRequest().getId());
         if (leave.isEmpty()) {
-            return new ErrorUtil<>(false, "Not a valid leave ID");
+            return new ErrorUtil<>(false, "Not a valid leave ID", null);
         }
 
         entity.setStatus(LeaveStatus.REJECTED);
@@ -614,6 +614,6 @@ public class LeaveServiceImpl implements LeaveService {
         log.info("Leave rejection email sent to {}", employeeEmailTo);
 
 
-        return new ErrorUtil<String>(true, "leave rejected successfully");
+        return new ErrorUtil<>(true, null, "leave rejected successfully");
     }
 }

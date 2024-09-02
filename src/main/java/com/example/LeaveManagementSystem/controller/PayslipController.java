@@ -4,8 +4,11 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.UUID;
 
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -13,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.example.LeaveManagementSystem.dto.CreatePayslipDTO;
+import com.example.LeaveManagementSystem.dto.CreatePayslipPDFDTO;
 import com.example.LeaveManagementSystem.response.ApiResponse;
 import com.example.LeaveManagementSystem.service.PayslipService;
 import com.example.LeaveManagementSystem.utils.Utils;
@@ -60,5 +64,20 @@ public class PayslipController {
         } catch (DateTimeParseException e) {
             return new ApiResponse<String>("Invalid date time format", 0, e.getMessage());
         }
+    }
+
+    @PostMapping("/create-pdf")
+    public byte[] genereatePDF(@RequestBody CreatePayslipPDFDTO dto) {
+        var res = payslipService.generatePDF(dto);
+        if (!res.isOk()) {
+            return null;
+        }
+        ContentDisposition contentDisposition = ContentDisposition.builder("inline")
+                .filename(dto.getName() + "-paylip" + "-" + dto.getPayMonth().toString())
+                .build();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentDisposition(contentDisposition);
+        return res.getData().toByteArray();
     }
 }
