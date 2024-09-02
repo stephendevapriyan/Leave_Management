@@ -24,7 +24,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
+
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -52,6 +57,9 @@ public class LeaveServiceImpl implements LeaveService {
     private MobileNoValidation mobileNoValidation;
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    JavaMailSender mailSender;
 
     // save organization
     @Override
@@ -219,46 +227,88 @@ public class LeaveServiceImpl implements LeaveService {
     public ApiResponse<LeaveResponseDTO> applyLeave(LeaveEntity entity) {
         log.info("apply leave method started");
         try {
+            // Check if employee exists
             if (!isEmployeeExists(entity.getEmployee().getId())) {
-                log.warn("invalid employee id");
+                log.warn("Invalid employee ID");
                 return ApiResponse.<LeaveResponseDTO>builder()
                         .status(HttpStatus.BAD_REQUEST.value())
-                        .message("invalid employee id")
+                        .message("Invalid employee ID")
                         .data(null)
                         .build();
             }
-            LeaveEntity saved = leaverepo.save(entity);
-            log.info("succesfully applied leave");
 
+            // Save the leave entity
+            LeaveEntity saved = leaverepo.save(entity);
+            log.info("Successfully applied leave");
+
+            // Validate email addresses
+            Optional<EmployeeEntity> byId = erepository.findById(saved.getEmployee().getId());
+            String employeeEmail = byId.get().getEmail();
+            String assigningEmail = saved.getAssigningEmail();
+            System.out.println(employeeEmail);
+            System.out.println(assigningEmail);
+            if (employeeEmail == null || employeeEmail.isEmpty()) {
+                log.warn("Employee email is null or empty");
+                throw new IllegalArgumentException("Employee email is invalid");
+            }
+            if (assigningEmail == null || assigningEmail.isEmpty()) {
+                log.warn("Assigning email is null or empty");
+                throw new IllegalArgumentException("Assigning email is invalid");
+            }
+
+            // Send email notification
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(employeeEmail);
+            message.setTo(assigningEmail);
+            message.setSubject("Leave Request Received");
+            message.setText("Your leave request for " + saved.getLeaveType() +
+                    " from " + saved.getStartDate() +
+                    " to " + saved.getEndDate() +
+                    " has been received and is pending approval.");
+            mailSender.send(message);
+            log.info("Leave request email sent to {}", assigningEmail);
+
+
+            // Prepare the response DTO
             LeaveResponseDTO dto = new LeaveResponseDTO();
-            dto.setId(entity.getId());
-            dto.setEmployeeId(entity.getEmployee().getId());
-            dto.setStartDate(entity.getStartDate());
-            dto.setEndDate(entity.getEndDate());
-            dto.setLeaveType(entity.getLeaveType());
-            dto.setStatus(entity.getStatus());
-            dto.setRequestDate(entity.getRequestDate());
-            dto.setLeaveReason(entity.getLeaveReason());
-            dto.setApprovedDate(entity.getApprovedDate());
-            dto.setCreatedAt(entity.getCreatedAt());
-            dto.setUpdatedAt(entity.getUpdatedAt());
+            dto.setId(saved.getId());
+            dto.setEmployeeId(saved.getEmployee().getId());
+            dto.setStartDate(saved.getStartDate());
+            dto.setEndDate(saved.getEndDate());
+            dto.setLeaveType(saved.getLeaveType());
+            dto.setStatus(saved.getStatus());
+            dto.setRequestDate(saved.getRequestDate());
+            dto.setLeaveReason(saved.getLeaveReason());
+            dto.setApprovedDate(saved.getApprovedDate());
+            dto.setCreatedAt(saved.getCreatedAt());
+            dto.setUpdatedAt(saved.getUpdatedAt());
+
+            // Return a successful response
             return ApiResponse.<LeaveResponseDTO>builder()
                     .status(HttpStatus.OK.value())
-                    .message("succesfully applied leave")
+                    .message("Successfully applied leave")
                     .data(dto)
                     .build();
-        } catch (Exception e) {
-            log.error(e.getMessage());
-            log.error("invalid input please check");
+        } catch (IllegalArgumentException e) {
+            log.error("Validation failed: {}", e.getMessage());
             return ApiResponse.<LeaveResponseDTO>builder()
                     .status(HttpStatus.BAD_REQUEST.value())
-                    .message("invalid input please check")
+                    .message(e.getMessage())
+                    .data(null)
+                    .build();
+        } catch (Exception e) {
+            log.error("Exception occurred: ", e);
+            return ApiResponse.<LeaveResponseDTO>builder()
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                    .message("An unexpected error occurred")
                     .data(null)
                     .build();
         } finally {
-            log.info("apply leave method completed");
+            log.info("Apply leave method completed");
         }
     }
+
+
 
     @Override
     public boolean isEmployeeExists(UUID id) {
@@ -527,6 +577,15 @@ public class LeaveServiceImpl implements LeaveService {
         EmployeeEntity employee = leave.get().getEmployee();
         employee.setLeaveCount(employee.getLeaveCount() - requiredDays);
         erepository.save(employee);
+        String EmailFrom = entity.getLeaveRequest().getAssigningEmail();
+        String employeeEmail = entity.getReviewedBy().getEmail();
+        SimpleMailMessage acceptedMail = new SimpleMailMessage();
+        acceptedMail.setFrom(EmailFrom);
+        acceptedMail.setTo(employeeEmail);
+        acceptedMail.setSubject("Leave Application Accepted");
+        acceptedMail.setText("Your leave application for " + leave.get().getLeaveType() + " from " + leave.get().getStartDate()+ " to " + leave.get().getEndDate() + " has been accepted.");
+        mailSender.send(acceptedMail);
+        log.info("Leave acceptance email sent to {}", employeeEmail);
 
         return new ErrorUtil<>(true, "leave accepted succesfully");
     }
@@ -544,6 +603,16 @@ public class LeaveServiceImpl implements LeaveService {
 
         entity.setStatus(LeaveStatus.REJECTED);
         rejectLeaveEntityRepo.save(entity);
+        String assigningEmailFrom = leave.get().getAssigningEmail();
+        String employeeEmailTo = leave.get().getEmployee().getEmail();
+        SimpleMailMessage rejectedMail=new SimpleMailMessage();
+        rejectedMail.setFrom(assigningEmailFrom);
+        rejectedMail.setTo(employeeEmailTo);
+        rejectedMail.setSubject("Leave Application Rejected");
+        rejectedMail.setText("Your leave application for " + leave.get().getLeaveType() + " has been rejected.");
+        mailSender.send(rejectedMail);
+        log.info("Leave rejection email sent to {}", employeeEmailTo);
+
 
         return new ErrorUtil<String>(true, "leave rejected successfully");
     }

@@ -53,6 +53,7 @@ public class LeaveController {
     public ResponseEntity<ApiResponse<LeaveResponseDTO>> leaveApply(@RequestBody LeaveEntity entity) {
         ApiResponse<LeaveResponseDTO> response = service.applyLeave(entity);
         return new ResponseEntity<>(response, HttpStatus.valueOf(response.getStatus()));
+
     }
 
 
