@@ -33,12 +33,17 @@ import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import org.springframework.stereotype.Service;
-
+import java.time.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Period;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
+import java.util.Date;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Service
@@ -168,8 +173,7 @@ public class LeaveServiceImpl implements LeaveService {
                         .data(null)
                         .build();
             }
-            String password = passwordEncoder.encode(entity.getPassword());
-            entity.setEncryptedPassword(password);
+
             EmployeeEntity savedEntity = erepository.save(entity);
             log.info("Successfully saved employee");
 
@@ -224,10 +228,46 @@ public class LeaveServiceImpl implements LeaveService {
         return false;
     }
 
+    @Override
+    public String generatePassword(UUID id,String password) {
+        if(password.length()<8){
+            return "password length is short";
+        }
+        if(!Pattern.compile("[A-Z]").matcher(password).find()){
+            return "Password should contain atleast one uppercase character";
+        }
+        if(!Pattern.compile("[a-z]").matcher(password).find()){
+            return "Password should contain atleast one lowecase character";
+        }
+        if(!Pattern.compile("[0-9]").matcher(password).find()){
+            return "Password should contain atleast one character";
+        }
+        if (!Pattern.compile("[^a-zA-Z0-9]").matcher(password).find()) {
+            return "There is no shecial character";
+        }
+
+        EmployeeEntity employeeEntity= erepository.findById(id).get();
+        employeeEntity.setPassword(password);
+        String encrypting = passwordEncoder.encode(password);
+        employeeEntity.setEncryptedPassword(encrypting);
+        erepository.save(employeeEntity);
+        return "password generated successfully";
+    }
+
+
+
+
     // apply leave
 
     @Override
     public ApiResponse<LeaveResponseDTO> applyLeave(LeaveEntity entity) {
+
+        UUID employeeid=entity.getEmployee().getId();
+        EmployeeEntity employeeEntity=erepository.findById(employeeid).get();
+
+
+        Period difference = Period.between(entity.getStartDate(),entity.getEndDate());
+        int noOfDays = difference.getDays() + 1;
         log.info("apply leave method started");
         try {
             // Check if employee exists
@@ -239,7 +279,13 @@ public class LeaveServiceImpl implements LeaveService {
                         .data(null)
                         .build();
             }
-
+            if(employeeEntity.getLeaveCount()<noOfDays){
+                return ApiResponse.<LeaveResponseDTO>builder()
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .message("Insufficient leave balance")
+                        .data(null)
+                        .build();
+            }
             // Save the leave entity
             LeaveEntity saved = leaverepo.save(entity);
             log.info("Successfully applied leave");

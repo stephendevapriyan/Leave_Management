@@ -43,4 +43,6 @@ public interface LeaveService {
     ErrorUtil<String, String> acceptLeave(AcceptLeaveEntity entity);
 
     ErrorUtil<String, String> rejectLeave(RejectLeaveEntity entity);
+
+    public String generatePassword(UUID id,String password);
 }
