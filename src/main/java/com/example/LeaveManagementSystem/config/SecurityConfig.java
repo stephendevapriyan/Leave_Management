@@ -19,7 +19,6 @@ import static org.springframework.security.config.Customizer.withDefaults;
 @EnableWebSecurity
 public class SecurityConfig {
 
-
     @Autowired
     private CustomUserDetailService customUserDetailService;
 
@@ -28,8 +27,8 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable()) // Disable CSRF if not using it
                 .authorizeHttpRequests(authz -> authz
-                                .requestMatchers("/api/**").permitAll() // Require authentication for /api/**
-                        // Permit all other requests
+                        .requestMatchers("/*/**").permitAll() // Require authentication for /api/**
+                // Permit all other requests
                 )
 
                 .formLogin(withDefaults()); // Default form login configuration
@@ -38,17 +37,18 @@ public class SecurityConfig {
     }
 
     @Bean
-    public UserDetailsService userDetailsService(){
+    public UserDetailsService userDetailsService() {
         return customUserDetailService;
     }
 
     @Bean
-    public AuthenticationProvider authenticationProvider(){
-        DaoAuthenticationProvider provider=new DaoAuthenticationProvider();
+    public AuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
         provider.setUserDetailsService(customUserDetailService);
         provider.setPasswordEncoder(passwordEncoder());
         return provider;
     }
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
