@@ -39,10 +39,7 @@ import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
-import java.util.Date;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.UUID;
+import java.util.*;
 import java.util.regex.Pattern;
 
 @Slf4j
@@ -283,6 +280,14 @@ public class LeaveServiceImpl implements LeaveService {
                 return ApiResponse.<LeaveResponseDTO>builder()
                         .status(HttpStatus.BAD_REQUEST.value())
                         .message("Insufficient leave balance")
+                        .data(null)
+                        .build();
+            }
+            List<LeaveEntity> matchedDates= leaverepo.findLeavesByEmployeeAndDates(employeeid,entity.getStartDate(),entity.getEndDate());
+            if(!matchedDates.isEmpty()){
+                return ApiResponse.<LeaveResponseDTO>builder()
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .message("Leave dates overlap with existing leave records")
                         .data(null)
                         .build();
             }
