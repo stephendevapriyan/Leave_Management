@@ -33,13 +33,13 @@ import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import org.springframework.stereotype.Service;
-import java.time.*;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
-import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
+import java.util.Properties;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 @Slf4j
@@ -79,7 +79,7 @@ public class LeaveServiceImpl implements LeaveService {
                         .data(null)
                         .build();
             }
-            if(!emailValidation.isEmailValid(oentity.getEmail())){
+            if (!emailValidation.isEmailValid(oentity.getEmail())) {
                 log.warn("invalid email id ");
                 return ApiResponse.<OrganizationEntity>builder()
                         .message("invalid email id please check")
@@ -87,7 +87,7 @@ public class LeaveServiceImpl implements LeaveService {
                         .data(null)
                         .build();
             }
-            if(!mobileNoValidation.isNumberValid(oentity.getContactNumber())){
+            if (!mobileNoValidation.isNumberValid(oentity.getContactNumber())) {
                 log.warn("invalid mobile no");
                 return ApiResponse.<OrganizationEntity>builder()
                         .message("invalid mobile no please check")
@@ -104,9 +104,9 @@ public class LeaveServiceImpl implements LeaveService {
                     .data(savedEntity)
                     .build();
         } catch (Exception e) {
-            log.error("invalid input please check" +e.getMessage());
+            log.error("invalid input please check" + e.getMessage());
             return ApiResponse.<OrganizationEntity>builder()
-                    .message("invalid input please check" +e.getMessage())
+                    .message("invalid input please check" + e.getMessage())
                     .status(HttpStatus.BAD_REQUEST.value())
                     .data(null)
                     .build();
@@ -154,7 +154,7 @@ public class LeaveServiceImpl implements LeaveService {
                         .data(null)
                         .build();
             }
-            if(!emailValidation.isEmailValid(entity.getEmail())){
+            if (!emailValidation.isEmailValid(entity.getEmail())) {
                 log.warn("invalid email id ");
                 return ApiResponse.<EmployeeResponseDTO>builder()
                         .message("invalid email id please check")
@@ -162,7 +162,7 @@ public class LeaveServiceImpl implements LeaveService {
                         .data(null)
                         .build();
             }
-            if(!mobileNoValidation.isNumberValid(entity.getPhoneNumber())){
+            if (!mobileNoValidation.isNumberValid(entity.getPhoneNumber())) {
                 log.warn("invalid mobile no ");
                 return ApiResponse.<EmployeeResponseDTO>builder()
                         .message("invalid mobile no")
@@ -226,24 +226,24 @@ public class LeaveServiceImpl implements LeaveService {
     }
 
     @Override
-    public String generatePassword(UUID id,String password) {
-        if(password.length()<8){
+    public String generatePassword(UUID id, String password) {
+        if (password.length() < 8) {
             return "password length is short";
         }
-        if(!Pattern.compile("[A-Z]").matcher(password).find()){
+        if (!Pattern.compile("[A-Z]").matcher(password).find()) {
             return "Password should contain atleast one uppercase character";
         }
-        if(!Pattern.compile("[a-z]").matcher(password).find()){
+        if (!Pattern.compile("[a-z]").matcher(password).find()) {
             return "Password should contain atleast one lowecase character";
         }
-        if(!Pattern.compile("[0-9]").matcher(password).find()){
+        if (!Pattern.compile("[0-9]").matcher(password).find()) {
             return "Password should contain atleast one character";
         }
         if (!Pattern.compile("[^a-zA-Z0-9]").matcher(password).find()) {
             return "There is no shecial character";
         }
 
-        EmployeeEntity employeeEntity= erepository.findById(id).get();
+        EmployeeEntity employeeEntity = erepository.findById(id).get();
         employeeEntity.setPassword(password);
         String encrypting = passwordEncoder.encode(password);
         employeeEntity.setEncryptedPassword(encrypting);
@@ -251,19 +251,15 @@ public class LeaveServiceImpl implements LeaveService {
         return "password generated successfully";
     }
 
-
-
-
     // apply leave
 
     @Override
     public ApiResponse<LeaveResponseDTO> applyLeave(LeaveEntity entity) {
 
-        UUID employeeid=entity.getEmployee().getId();
-        EmployeeEntity employeeEntity=erepository.findById(employeeid).get();
+        UUID employeeid = entity.getEmployee().getId();
+        EmployeeEntity employeeEntity = erepository.findById(employeeid).get();
 
-
-        Period difference = Period.between(entity.getStartDate(),entity.getEndDate());
+        Period difference = Period.between(entity.getStartDate(), entity.getEndDate());
         int noOfDays = difference.getDays() + 1;
         log.info("apply leave method started");
         try {
@@ -276,15 +272,16 @@ public class LeaveServiceImpl implements LeaveService {
                         .data(null)
                         .build();
             }
-            if(employeeEntity.getLeaveCount()<noOfDays){
+            if (employeeEntity.getLeaveCount() < noOfDays) {
                 return ApiResponse.<LeaveResponseDTO>builder()
                         .status(HttpStatus.BAD_REQUEST.value())
                         .message("Insufficient leave balance")
                         .data(null)
                         .build();
             }
-            List<LeaveEntity> matchedDates= leaverepo.findLeavesByEmployeeAndDates(employeeid,entity.getStartDate(),entity.getEndDate());
-            if(!matchedDates.isEmpty()){
+            List<LeaveEntity> matchedDates = leaverepo.findLeavesByEmployeeAndDates(employeeid, entity.getStartDate(),
+                    entity.getEndDate());
+            if (!matchedDates.isEmpty()) {
                 return ApiResponse.<LeaveResponseDTO>builder()
                         .status(HttpStatus.BAD_REQUEST.value())
                         .message("Leave dates overlap with existing leave records")
@@ -340,7 +337,6 @@ public class LeaveServiceImpl implements LeaveService {
                 log.error("Failed to send email to {}: {}", assigningEmail, e.getMessage());
             }
 
-
             // Prepare the response DTO
             LeaveResponseDTO dto = new LeaveResponseDTO();
             dto.setId(saved.getId());
@@ -379,8 +375,6 @@ public class LeaveServiceImpl implements LeaveService {
             log.info("Apply leave method completed");
         }
     }
-
-
 
     @Override
     public boolean isEmployeeExists(UUID id) {
@@ -657,14 +651,14 @@ public class LeaveServiceImpl implements LeaveService {
 
         String assigningEmail = leaveOptional.get().getAssigningEmail();
 
-// Get the employee email and check for null
+        // Get the employee email and check for null
         String toEmail = employee.getEmail();
         if (toEmail == null) {
             log.error("Employee email is null.");
             throw new IllegalStateException("Cannot send email without a valid employee email.");
         }
 
-// Set up the mail sender
+        // Set up the mail sender
         JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
         mailSender.setHost("smtp.gmail.com");
         mailSender.setPort(587);
@@ -677,17 +671,19 @@ public class LeaveServiceImpl implements LeaveService {
         props.put("mail.smtp.starttls.enable", "true"); // Ensure STARTTLS is enabled
         props.put("mail.debug", "true");
 
-// Create and send the email
+        // Create and send the email
         SimpleMailMessage acceptedMail = new SimpleMailMessage();
         acceptedMail.setFrom(assigningEmail);
         acceptedMail.setTo(toEmail);
         acceptedMail.setSubject("Leave Application Accepted");
-        acceptedMail.setText("Your leave application for " + leaveOptional.get().getLeaveType() + " from " + leaveOptional.get().getStartDate() + " to " + leaveOptional.get().getEndDate() + " has been accepted.");
+        acceptedMail.setText("Your leave application for " + leaveOptional.get().getLeaveType() + " from "
+                + leaveOptional.get().getStartDate() + " to " + leaveOptional.get().getEndDate()
+                + " has been accepted.");
 
-        String[] ccEmails = {"cc1@example.com", "cc2@example.com"}; // Replace with actual CC email addresses
+        String[] ccEmails = { "cc1@example.com", "cc2@example.com" }; // Replace with actual CC email addresses
         acceptedMail.setCc(ccEmails);
 
-// Send the email
+        // Send the email
         try {
             mailSender.send(acceptedMail);
             log.info("Leave acceptance email sent to {}", toEmail);
@@ -695,18 +691,19 @@ public class LeaveServiceImpl implements LeaveService {
             log.error("Failed to send email to {}: {}", toEmail, e.getMessage());
         }
 
-
         return new ErrorUtil<>(true, null, "leave accepted succesfully");
     }
 
     @Override
     public ErrorUtil<String, String> rejectLeave(RejectLeaveEntity entity) {
         if (!isEmployeeExists(entity.getReviewedBy().getId())) {
+            log.error("Not a valid reviewer %s", entity.getReviewedBy().getId().toString());
             return new ErrorUtil<>(false, "Not a valid reviewer", null);
         }
 
         var leave = leaverepo.findById(entity.getLeaveRequest().getId());
         if (leave.isEmpty()) {
+            log.error("Not a valid request id %s", entity.getLeaveRequest().getId().toString());
             return new ErrorUtil<>(false, "Not a valid leave ID", null);
         }
 
@@ -746,7 +743,7 @@ public class LeaveServiceImpl implements LeaveService {
         rejectedMail.setText("Your leave application for " + leave.get().getLeaveType() + " has been rejected.");
 
         // Add CC recipients
-        String[] ccEmails = {"cc1@example.com", "cc2@example.com"}; // Replace with actual CC email addresses
+        String[] ccEmails = { "cc1@example.com", "cc2@example.com" }; // Replace with actual CC email addresses
         rejectedMail.setCc(ccEmails);
 
         // Send the email
@@ -756,7 +753,6 @@ public class LeaveServiceImpl implements LeaveService {
         } catch (MailException e) {
             log.error("Failed to send email to {}: {}", employeeEmailTo, e.getMessage());
         }
-
 
         return new ErrorUtil<>(true, null, "leave rejected successfully");
     }
