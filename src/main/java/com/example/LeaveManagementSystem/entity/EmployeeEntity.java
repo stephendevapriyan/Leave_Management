@@ -63,4 +63,5 @@ public class EmployeeEntity {
     private Integer leaveCount;
     private String password;
     private String encryptedPassword;
+    private  Integer employeeSalary;
 }
