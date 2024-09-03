@@ -76,6 +76,12 @@ public class LeaveController {
         }
     }
 
+
+    @PostMapping("/passwords")
+    public String createPassword(@RequestParam UUID id, String password){
+        return service.generatePassword(id,password);
+    }
+
     @PostMapping("/accept-leave")
     public ResponseEntity<?> acceptLeave(@RequestBody AcceptLeaveEntity acceptLeave) {
         ErrorUtil<String, String> res = service.acceptLeave(acceptLeave);

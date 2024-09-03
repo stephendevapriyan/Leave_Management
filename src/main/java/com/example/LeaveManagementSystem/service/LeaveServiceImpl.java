@@ -25,17 +25,22 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 
+import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import org.springframework.stereotype.Service;
-
+import java.time.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Period;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Service
@@ -165,8 +170,7 @@ public class LeaveServiceImpl implements LeaveService {
                         .data(null)
                         .build();
             }
-            String password = passwordEncoder.encode(entity.getPassword());
-            entity.setEncryptedPassword(password);
+
             EmployeeEntity savedEntity = erepository.save(entity);
             log.info("Successfully saved employee");
 
@@ -221,10 +225,46 @@ public class LeaveServiceImpl implements LeaveService {
         return false;
     }
 
+    @Override
+    public String generatePassword(UUID id,String password) {
+        if(password.length()<8){
+            return "password length is short";
+        }
+        if(!Pattern.compile("[A-Z]").matcher(password).find()){
+            return "Password should contain atleast one uppercase character";
+        }
+        if(!Pattern.compile("[a-z]").matcher(password).find()){
+            return "Password should contain atleast one lowecase character";
+        }
+        if(!Pattern.compile("[0-9]").matcher(password).find()){
+            return "Password should contain atleast one character";
+        }
+        if (!Pattern.compile("[^a-zA-Z0-9]").matcher(password).find()) {
+            return "There is no shecial character";
+        }
+
+        EmployeeEntity employeeEntity= erepository.findById(id).get();
+        employeeEntity.setPassword(password);
+        String encrypting = passwordEncoder.encode(password);
+        employeeEntity.setEncryptedPassword(encrypting);
+        erepository.save(employeeEntity);
+        return "password generated successfully";
+    }
+
+
+
+
     // apply leave
 
     @Override
     public ApiResponse<LeaveResponseDTO> applyLeave(LeaveEntity entity) {
+
+        UUID employeeid=entity.getEmployee().getId();
+        EmployeeEntity employeeEntity=erepository.findById(employeeid).get();
+
+
+        Period difference = Period.between(entity.getStartDate(),entity.getEndDate());
+        int noOfDays = difference.getDays() + 1;
         log.info("apply leave method started");
         try {
             // Check if employee exists
@@ -236,17 +276,30 @@ public class LeaveServiceImpl implements LeaveService {
                         .data(null)
                         .build();
             }
-
+            if(employeeEntity.getLeaveCount()<noOfDays){
+                return ApiResponse.<LeaveResponseDTO>builder()
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .message("Insufficient leave balance")
+                        .data(null)
+                        .build();
+            }
+            List<LeaveEntity> matchedDates= leaverepo.findLeavesByEmployeeAndDates(employeeid,entity.getStartDate(),entity.getEndDate());
+            if(!matchedDates.isEmpty()){
+                return ApiResponse.<LeaveResponseDTO>builder()
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .message("Leave dates overlap with existing leave records")
+                        .data(null)
+                        .build();
+            }
             // Save the leave entity
             LeaveEntity saved = leaverepo.save(entity);
             log.info("Successfully applied leave");
-
-            // Validate email addresses
             Optional<EmployeeEntity> byId = erepository.findById(saved.getEmployee().getId());
+
             String employeeEmail = byId.get().getEmail();
             String assigningEmail = saved.getAssigningEmail();
-            System.out.println(employeeEmail);
-            System.out.println(assigningEmail);
+
+            // Check if email addresses are valid
             if (employeeEmail == null || employeeEmail.isEmpty()) {
                 log.warn("Employee email is null or empty");
                 throw new IllegalArgumentException("Employee email is invalid");
@@ -256,7 +309,20 @@ public class LeaveServiceImpl implements LeaveService {
                 throw new IllegalArgumentException("Assigning email is invalid");
             }
 
-            // Send email notification
+            // Set up the mail sender
+            JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
+            mailSender.setHost("smtp.gmail.com");
+            mailSender.setPort(587);
+            mailSender.setUsername(employeeEmail); // Use the employee email as username
+            mailSender.setPassword("gwsphcbdsbjgolll"); // Securely handle this password
+
+            Properties props = mailSender.getJavaMailProperties();
+            props.put("mail.transport.protocol", "smtp");
+            props.put("mail.smtp.auth", "true");
+            props.put("mail.smtp.starttls.enable", "true"); // Ensure STARTTLS is enabled
+            props.put("mail.debug", "true");
+
+            // Create and configure the email message
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(employeeEmail);
             message.setTo(assigningEmail);
@@ -265,8 +331,14 @@ public class LeaveServiceImpl implements LeaveService {
                     " from " + saved.getStartDate() +
                     " to " + saved.getEndDate() +
                     " has been received and is pending approval.");
-            mailSender.send(message);
-            log.info("Leave request email sent to {}", assigningEmail);
+
+            // Send the email
+            try {
+                mailSender.send(message);
+                log.info("Leave request email sent to {}", assigningEmail);
+            } catch (MailException e) {
+                log.error("Failed to send email to {}: {}", assigningEmail, e.getMessage());
+            }
 
 
             // Prepare the response DTO
@@ -577,15 +649,52 @@ public class LeaveServiceImpl implements LeaveService {
         EmployeeEntity employee = leave.get().getEmployee();
         employee.setLeaveCount(employee.getLeaveCount() - requiredDays);
         erepository.save(employee);
-        String EmailFrom = entity.getLeaveRequest().getAssigningEmail();
-        String employeeEmail = entity.getReviewedBy().getEmail();
+        Optional<LeaveEntity> leaveOptional = Optional.of(leave.get());
+        if (leaveOptional.isEmpty() || leaveOptional.get().getAssigningEmail() == null) {
+            log.error("Assigning email is null or leave information is missing.");
+            throw new IllegalStateException("Cannot send email without a valid assigning email.");
+        }
+
+        String assigningEmail = leaveOptional.get().getAssigningEmail();
+
+// Get the employee email and check for null
+        String toEmail = employee.getEmail();
+        if (toEmail == null) {
+            log.error("Employee email is null.");
+            throw new IllegalStateException("Cannot send email without a valid employee email.");
+        }
+
+// Set up the mail sender
+        JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
+        mailSender.setHost("smtp.gmail.com");
+        mailSender.setPort(587);
+        mailSender.setUsername(assigningEmail);
+        mailSender.setPassword("gwsphcbdsbjgolll");
+
+        Properties props = mailSender.getJavaMailProperties();
+        props.put("mail.transport.protocol", "smtp");
+        props.put("mail.smtp.auth", "true");
+        props.put("mail.smtp.starttls.enable", "true"); // Ensure STARTTLS is enabled
+        props.put("mail.debug", "true");
+
+// Create and send the email
         SimpleMailMessage acceptedMail = new SimpleMailMessage();
-        acceptedMail.setFrom(EmailFrom);
-        acceptedMail.setTo(employeeEmail);
+        acceptedMail.setFrom(assigningEmail);
+        acceptedMail.setTo(toEmail);
         acceptedMail.setSubject("Leave Application Accepted");
-        acceptedMail.setText("Your leave application for " + leave.get().getLeaveType() + " from " + leave.get().getStartDate()+ " to " + leave.get().getEndDate() + " has been accepted.");
-        mailSender.send(acceptedMail);
-        log.info("Leave acceptance email sent to {}", employeeEmail);
+        acceptedMail.setText("Your leave application for " + leaveOptional.get().getLeaveType() + " from " + leaveOptional.get().getStartDate() + " to " + leaveOptional.get().getEndDate() + " has been accepted.");
+
+        String[] ccEmails = {"cc1@example.com", "cc2@example.com"}; // Replace with actual CC email addresses
+        acceptedMail.setCc(ccEmails);
+
+// Send the email
+        try {
+            mailSender.send(acceptedMail);
+            log.info("Leave acceptance email sent to {}", toEmail);
+        } catch (MailException e) {
+            log.error("Failed to send email to {}: {}", toEmail, e.getMessage());
+        }
+
 
         return new ErrorUtil<>(true, null, "leave accepted succesfully");
     }
@@ -605,13 +714,48 @@ public class LeaveServiceImpl implements LeaveService {
         rejectLeaveEntityRepo.save(entity);
         String assigningEmailFrom = leave.get().getAssigningEmail();
         String employeeEmailTo = leave.get().getEmployee().getEmail();
-        SimpleMailMessage rejectedMail=new SimpleMailMessage();
+
+        // Check if email addresses are valid
+        if (assigningEmailFrom == null || assigningEmailFrom.isEmpty()) {
+            log.error("Assigning email is null or empty.");
+            throw new IllegalStateException("Cannot send email without a valid assigning email.");
+        }
+        if (employeeEmailTo == null || employeeEmailTo.isEmpty()) {
+            log.error("Employee email is null or empty.");
+            throw new IllegalStateException("Cannot send email without a valid employee email.");
+        }
+
+        // Set up the mail sender
+        JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
+        mailSender.setHost("smtp.gmail.com");
+        mailSender.setPort(587);
+        mailSender.setUsername(assigningEmailFrom);
+        mailSender.setPassword("gwsphcbdsbjgolll"); // Ensure secure handling of this password
+
+        Properties props = mailSender.getJavaMailProperties();
+        props.put("mail.transport.protocol", "smtp");
+        props.put("mail.smtp.auth", "true");
+        props.put("mail.smtp.starttls.enable", "true"); // Ensure STARTTLS is enabled
+        props.put("mail.debug", "true");
+
+        // Create and configure the email
+        SimpleMailMessage rejectedMail = new SimpleMailMessage();
         rejectedMail.setFrom(assigningEmailFrom);
         rejectedMail.setTo(employeeEmailTo);
         rejectedMail.setSubject("Leave Application Rejected");
         rejectedMail.setText("Your leave application for " + leave.get().getLeaveType() + " has been rejected.");
-        mailSender.send(rejectedMail);
-        log.info("Leave rejection email sent to {}", employeeEmailTo);
+
+        // Add CC recipients
+        String[] ccEmails = {"cc1@example.com", "cc2@example.com"}; // Replace with actual CC email addresses
+        rejectedMail.setCc(ccEmails);
+
+        // Send the email
+        try {
+            mailSender.send(rejectedMail);
+            log.info("Leave rejection email sent to {}", employeeEmailTo);
+        } catch (MailException e) {
+            log.error("Failed to send email to {}: {}", employeeEmailTo, e.getMessage());
+        }
 
 
         return new ErrorUtil<>(true, null, "leave rejected successfully");
