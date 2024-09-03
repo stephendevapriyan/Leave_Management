@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.UUID;
+import java.util.Set;
 
 @Entity
 @Table(name = "employees")
@@ -51,6 +52,9 @@ public class EmployeeEntity {
 
     @Column(nullable = false)
     private boolean isDelete;
+
+    @OneToMany
+    private Set<WorkingHours> hours;
 
     @Column
     private LocalDateTime createdAt;
