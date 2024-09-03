@@ -40,7 +40,7 @@ public interface LeaveService {
 
     boolean hasEnoughLeaves(UUID id, int requiredDays);
 
-    ErrorUtil<String> acceptLeave(AcceptLeaveEntity entity);
+    ErrorUtil<String, String> acceptLeave(AcceptLeaveEntity entity);
 
-    ErrorUtil<String> rejectLeave(RejectLeaveEntity entity);
+    ErrorUtil<String, String> rejectLeave(RejectLeaveEntity entity);
 }
