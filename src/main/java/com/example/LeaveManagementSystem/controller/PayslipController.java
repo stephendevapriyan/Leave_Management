@@ -34,13 +34,16 @@ public class PayslipController {
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @ResponseBody
-    public ApiResponse<?> createPaySlip(@RequestPart("file") MultipartFile file, @RequestPart("name") String name,
-            @RequestPart("pay_period_start") String payPeriodStart, @RequestPart("pay_period_end") String payPeriodEnd,
+    public ApiResponse<?> createPaySlip(
+            @RequestPart("file") MultipartFile file,
+            @RequestPart("name") String name,
+            @RequestPart("pay_period_start") String payPeriodStart,
+            @RequestPart("pay_period_end") String payPeriodEnd,
             @RequestPart("issued_date") String issuedDate,
-            @RequestPart("file_type") String fileType, @RequestPart("file_name") String fileName,
-            @RequestPart("employee_id") String employeeId)
-            throws Exception {
+            @RequestPart("file_type") String fileType,
+            @RequestPart("file_name") String fileName,
+            @RequestPart("employee_id") String employeeId) throws Exception {
+
         try {
             LocalDate payPeriodStartDate = utils.stringToLocalDate(payPeriodStart);
             LocalDate payPeriodEndDate = utils.stringToLocalDate(payPeriodEnd);

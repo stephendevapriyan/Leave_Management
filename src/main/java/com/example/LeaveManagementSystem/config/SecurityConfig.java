@@ -1,6 +1,6 @@
 package com.example.LeaveManagementSystem.config;
 
-import com.example.LeaveManagementSystem.service.CustomUserDetailService;
+import com.example.LeaveManagementSystem.serviceImpl.CustomUserDetailServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,7 +20,7 @@ import static org.springframework.security.config.Customizer.withDefaults;
 public class SecurityConfig {
 
     @Autowired
-    private CustomUserDetailService customUserDetailService;
+    private CustomUserDetailServiceImpl customUserDetailService;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {

@@ -8,7 +8,7 @@ import com.example.LeaveManagementSystem.entity.LeaveEntity;
 import com.example.LeaveManagementSystem.entity.OrganizationEntity;
 import com.example.LeaveManagementSystem.entity.RejectLeaveEntity;
 import com.example.LeaveManagementSystem.response.ApiResponse;
-import com.example.LeaveManagementSystem.service.CustomUserDetailService;
+import com.example.LeaveManagementSystem.serviceImpl.CustomUserDetailServiceImpl;
 import com.example.LeaveManagementSystem.service.LeaveService;
 import com.example.LeaveManagementSystem.utils.ErrorUtil;
 
@@ -32,7 +32,7 @@ public class LeaveController {
     private LeaveService service;
 
     @Autowired
-    private CustomUserDetailService userDetailService;
+    private CustomUserDetailServiceImpl userDetailService;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -108,18 +108,18 @@ public class LeaveController {
     }
 
     @DeleteMapping("/deleteorg")
-    ResponseEntity<ApiResponse<OrganizationEntity>> deleteOLM(@RequestParam(name = "id", required = false) UUID id) {
+    ResponseEntity<ApiResponse<OrganizationEntity>> deleteOLM(@RequestParam(name = "id") UUID id) {
 
         return service.deleteOrganizationID(id);
     }
 
     @DeleteMapping("/deleteemployee")
-    ResponseEntity<ApiResponse<EmployeeEntity>> employeedelete(@RequestParam(name = "id", required = false) UUID id) {
+    ResponseEntity<ApiResponse<EmployeeEntity>> employeedelete(@RequestParam(name = "id") UUID id) {
         return service.deleteEmployeeById(id);
     }
 
     @DeleteMapping("/deleteleave")
-    ResponseEntity<ApiResponse<LeaveEntity>> deleteLeave(@RequestParam(name = "id", required = false) UUID id) {
+    ResponseEntity<ApiResponse<LeaveEntity>> deleteLeave(@RequestParam(name = "id") UUID id) {
 
         return service.deleteLeave(id);
     }

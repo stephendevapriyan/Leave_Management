@@ -1,4 +1,4 @@
-package com.example.LeaveManagementSystem.service;
+package com.example.LeaveManagementSystem.serviceImpl;
 
 import com.example.LeaveManagementSystem.dto.EmployeeResponseDTO;
 import com.example.LeaveManagementSystem.dto.LeaveResponseDTO;
@@ -15,6 +15,7 @@ import com.example.LeaveManagementSystem.repository.LeaveRepo;
 import com.example.LeaveManagementSystem.repository.OrganizationRepo;
 import com.example.LeaveManagementSystem.repository.RejectLeaveEntityRepo;
 import com.example.LeaveManagementSystem.response.ApiResponse;
+import com.example.LeaveManagementSystem.service.LeaveService;
 import com.example.LeaveManagementSystem.utils.ErrorUtil;
 
 import com.example.LeaveManagementSystem.validation.EmailValidation;

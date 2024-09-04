@@ -1,10 +1,12 @@
-package com.example.LeaveManagementSystem.service;
+package com.example.LeaveManagementSystem.serviceImpl;
 
 import com.example.LeaveManagementSystem.dto.CreatePayslipDTO;
 import com.example.LeaveManagementSystem.dto.CreatePayslipPDFDTO;
 import com.example.LeaveManagementSystem.entity.EmployeeEntity;
 import com.example.LeaveManagementSystem.entity.PayslipEntity;
 
+import com.example.LeaveManagementSystem.service.LeaveService;
+import com.example.LeaveManagementSystem.service.PayslipService;
 import org.springframework.stereotype.Service;
 
 import com.example.LeaveManagementSystem.repository.PayslipRep;

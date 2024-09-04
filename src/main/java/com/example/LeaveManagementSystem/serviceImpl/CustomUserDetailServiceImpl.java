@@ -1,4 +1,4 @@
-package com.example.LeaveManagementSystem.service;
+package com.example.LeaveManagementSystem.serviceImpl;
 
 import com.example.LeaveManagementSystem.entity.EmployeeEntity;
 import com.example.LeaveManagementSystem.repository.EmployeeRepo;
@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 import java.util.Optional;
 
 @Service
-public class CustomUserDetailService implements UserDetailsService {
+public class CustomUserDetailServiceImpl implements UserDetailsService {
 
     @Autowired
     private EmployeeRepo employeeRepo;

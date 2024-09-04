@@ -1,11 +1,11 @@
-package com.example.LeaveManagementSystem.service;
+package com.example.LeaveManagementSystem.serviceImpl;
 
 import com.example.LeaveManagementSystem.entity.EmployeeEntity;
 import com.example.LeaveManagementSystem.repository.EmployeeRepo;
+import com.example.LeaveManagementSystem.service.ApraisalServiceInter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.stereotype.Service;
 
@@ -14,7 +14,6 @@ import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
-import java.util.Optional;
 import java.util.Properties;
 
 @Service
